@@ -4,6 +4,7 @@ close all
 dpdx_readin_MKF
 SP_Binary_read_in_MKF
 load('dpdx.mat')
+%%
 % Density Rho, dynamic viscosity mu
 
 % Parameters for ZSI functio
@@ -11,7 +12,6 @@ load('dpdx.mat')
 % P_Pa = Data(:,3);
 
 % % calls function ZSI, which calculates parameters rho and mu
-[Rho, mu] = ZSI(TempK,101325);
 
 % 
 % 
@@ -75,7 +75,14 @@ load('dpdx.mat')
 %    'Interpreter','Latex','FontSize',15,'Location','northwest')
 
 %%
-
+[Rho, mu] = ZSI(TempK(1),101325);
+utau = sqrt((-DPDX./Rho)*(D./4))
+nu = mu./Rho;
+yplus = nu/utau;
+retau = round(D./2./yplus)
+yoffset = 200;
+load('re150000.mat')
+%%
 
 figure(1)
 
