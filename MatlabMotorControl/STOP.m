@@ -2,5 +2,6 @@ function [pos] = STOP(motor)
 if strcmp(motor.Status,'closed')
     fopen(motor);
 end
-pos = query(motor,'/1TR');
+flushinput(motor)
+pos = query(motor,'/1TR','%s\n','%s\n');
 end
