@@ -1,10 +1,12 @@
 % Gather Daq Devices
 clc
-motor =1;
+[pathstr,name,ext] = fileparts(mfilename('fullpath'));
+addpath(pathstr);
 direc = uigetdir;
-addpath(pwd);
 [SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,'Precal');
 cd(direc);cd('Precal')
+%%%
+
 % %%
 % d = daq.getDevices;
 % daqCal = daq.createSession('ni')
@@ -105,7 +107,8 @@ for i = 1:N
         'Pitot_Pa',mean(captured_data(:,4))*transducer/5*6894.75729,...
         'Raw',captured_data,...
         'Rate',daqCal.Rate,...
-        'sampleDuration',sampleDuration);
+        'sampleDuration',sampleDuration,...
+        'transducer',transducer);
     data.rho = ZSI(data.TempK,data.Static_Pa);
     if i == 1
         calData{1} = data;
@@ -128,6 +131,7 @@ for i = 1:N
 end
 hold off
 save('all.mat','calData')
-save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa')
+save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','transducer')
 
 clearvars -except motor
+cd ..
