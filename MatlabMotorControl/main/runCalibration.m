@@ -140,7 +140,6 @@ end
 hold off
 save('all.mat','calData')
 save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','transducer')
+%removeChannel(daqCal,5);
 
-cd ..
-clearvars -except motor step speed reply
 end

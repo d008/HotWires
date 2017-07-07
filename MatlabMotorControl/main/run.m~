@@ -10,8 +10,7 @@ ySet = logspace(log10(ymin),log10(ymax),numPos);    %Y - Location set points
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Generate Precal file
 direc = uigetdir;
-fname = 'Precal';
-[SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
+fname = 'Precal';mkdir(direc,fname);
 cd(direc);cd(fname)
 clc
 %% Query centerline
@@ -32,8 +31,16 @@ end
 % end
 %% DAQ Setup
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+MotorOutChannel = 'ao0';
+TemperatureChannel = 'ai0';
+ScanivalveChannel = 'ai1';
+TunnelStaticChannel = 'ai2';
+Pitot02Channel = 'ai3';
+Pitot1Channel = 'ai3';
+Pitot5Channel = 'ai3';
+
 % d = daq.getDevices; daqCal = daq.createSession('ni')
-% 
+
 % % Add Channels to daq
 % addAnalogOutputChannel(daqCal,'Dev4','ao0','Voltage');          % Motor
 % Controller Voltage
@@ -50,6 +57,7 @@ end
 %% Start Precal
 disp('Starting Precal')
 Vtemp = runCalibration(fname,daqCal)
+cd ..
 %% Testing Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 daqCal.Rate = 300000;    % Data acquisition frequency
@@ -58,21 +66,35 @@ Vset = 6.8;              % Voltage Set point
 Vout = zeros(sampleDuration*daqCal.Rate,1)+Vset;
 rampSpeed = .1;          % V/sec
 
-%queueOutputData(daqCal,linspace(Vtemp,Vset,daqCal.Rate*rampTime))
+%% Ramp voltage to test point
+%queueOutputData(daqCal,linspace(Vtemp,Vset,daqCal.Rate/rampSpeed*abs(Vset-Vtemp)));
 %daqCal.startForeground();
-% daqCal.outputSingleScan(Vset)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%% Data folder
+fname = 'Data';mkdir(direc,fname);
+cd(direc);cd(fname);
 %% Move to wall
 % [pos, pos2] = locate(motor);
 % pos = move(-pos2,motor,2000*256,256);
-
 % [pos, pos2] = locate(motor);
 % disp(sprintf('Current location is %0.4f mm \n',pos))
+for i = 1:numPos
+    if(i > 1)
+        % pos = move(ySet(i),motor,2000*256,256);
+    end
+    yActual(i) = pos;
+    %queueOutputData(daqCal,Vout);
+    %[captured_data,time] = daqCal.startForeground();
+    name = sprintf('V%0.2f_Index%i_YLoc%0.2f.bin',6.8,i,ySet(i)*1000)
+    fid = fopen(strcat(name,'.bin'),'wb')
+    fwrite(fid,[data_hw,timeStamps_hw],'ubit16') %
+    fclose(fid);
+    %fread(fid,[daqSampleTime*daqSampleFreq],'ubit16');
+end
+
 
 %% Generate Postcal file
-fname = 'Postcal';
-[SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
+fname = 'Postcal';mkdir(direc,fname);
 cd(direc);cd(fname)
 
 %% Move to centerline for Postcal

@@ -31,15 +31,25 @@ end
 % end
 %% DAQ Setup
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+MotorOutChannel = 'ao0';
+TemperatureChannel = 'ai0';
+ScanivalveChannel = 'ai1';
+TunnelStaticChannel = 'ai2';
+DantecChannel = 'ai3';
+Pitot02Channel = 'ai4';
+Pitot1Channel = 'ai5';
+Pitot5Channel = 'ai6';
+LimitSwitchChannel = 'ai7';
+
 % d = daq.getDevices; daqCal = daq.createSession('ni')
-% 
+
 % % Add Channels to daq
-% addAnalogOutputChannel(daqCal,'Dev4','ao0','Voltage');          % Motor
+% addAnalogOutputChannel(daqCal,'Dev4',MotorOutChannel,'Voltage');          % Motor
 % Controller Voltage
 % 
-% addAnalogInputChannel(daqCal,'Dev4','ai0','Voltage');           % Temperature
-% addAnalogInputChannel(daqCal,'Dev4','ai2','Voltage');           % Tunnel Static
-% Pressure addAnalogInputChannel(daqCal,'Dev4','ai3','Voltage');  % Hotwire
+% addAnalogInputChannel(daqCal,'Dev4',TemperatureChannel,'Voltage');           % Temperature
+% addAnalogInputChannel(daqCal,'Dev4',TunnelStaticChannel,'Voltage');           % Tunnel Static
+% Pressure addAnalogInputChannel(daqCal,'Dev4',DantecChannel,'Voltage');  % Hotwire
 % 
 % %addAnalogInputChannel(daqCal,'Dev4','ai1','Voltage');          % Scanivalve
 % %addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');          % Limit Switch
@@ -49,6 +59,7 @@ end
 %% Start Precal
 disp('Starting Precal')
 Vtemp = runCalibration(fname,daqCal)
+cd ..
 %% Testing Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 daqCal.Rate = 300000;    % Data acquisition frequency
@@ -61,8 +72,11 @@ rampSpeed = .1;          % V/sec
 %queueOutputData(daqCal,linspace(Vtemp,Vset,daqCal.Rate/rampSpeed*abs(Vset-Vtemp)));
 %daqCal.startForeground();
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%% Data folder
+fname = 'Data';mkdir(direc,fname);
+cd(direc);cd(fname);
 %% Move to wall
+pos =1;
 % [pos, pos2] = locate(motor);
 % pos = move(-pos2,motor,2000*256,256);
 % [pos, pos2] = locate(motor);
@@ -73,15 +87,18 @@ for i = 1:numPos
     end
     yActual(i) = pos;
     %queueOutputData(daqCal,Vout);
-    %[captured_data,time] = daqCal.startForeground();
-
+    %[data_hw,time] = daqCal.startForeground();
+    name = sprintf('V%0.2f_Index%i_YLoc%0.2f.bin',6.8,i,ySet(i)*1000)
+%     fid = fopen(name,'wb')
+%     fwrite(fid,[time,data_hw],'ubit16') %
+%     fclose(fid);
+    %fread(fid,[daqSampleTime*daqSampleFreq],'ubit16');
 end
 
 
 %% Generate Postcal file
 fname = 'Postcal';mkdir(direc,fname);
-cd(direc);cd(fname)
-
+cd(direc);cd(fname);
 %% Move to centerline for Postcal
 % disp('Moving to Centerline')
 % [pos,trav] = move(center-pos,motor,2000*256,256);
@@ -90,5 +107,8 @@ cd(direc);cd(fname)
 % end
 %% Start Postcal
 disp('Starting Postcal')
-Vtemp = runCalibration(fname,daqCal)
-
+Vtemp = runCalibration(fname,daqCal);
+%% Ramp voltage down
+%queueOutputData(daqCal,linspace(Vtemp,0,daqCal.Rate/rampSpeed*abs(Vset-Vtemp)));
+%daqCal.startForeground();
+cd ..
