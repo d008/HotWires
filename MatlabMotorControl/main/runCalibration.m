@@ -17,7 +17,6 @@ function runCalibration(fname)
 clc
 [pathstr,name,ext] = fileparts(mfilename('fullpath'));
 cd(pathstr); 
-cd ..;
 
 %addpath(fullfile(
 direc = uigetdir;
@@ -151,6 +150,6 @@ hold off
 save('all.mat','calData')
 save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','transducer')
 
+cd(pathstr); 
 clearvars -except motor
-cd ..
 end
