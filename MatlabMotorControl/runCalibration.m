@@ -1,23 +1,24 @@
 % Gather Daq Devices
+function runCalibration(fname)
 clc
 [pathstr,name,ext] = fileparts(mfilename('fullpath'));
 addpath(pathstr);
 direc = uigetdir;
-[SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,'Precal');
-cd(direc);cd('Precal')
+[SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
+cd(direc);cd(fname)
 %%%
 
 % %%
 % d = daq.getDevices;
 % daqCal = daq.createSession('ni')
-% 
+%
 % % Add Channels to daq
 % addAnalogOutputChannel(daqCal,'Dev4','ao0','Voltage');  % Motor Controller Voltage
-% 
+%
 % addAnalogInputChannel(daqCal,'Dev4','ai0','Voltage');   % Temperature
 % addAnalogInputChannel(daqCal,'Dev4','ai2','Voltage');   % Tunnel Static Pressure
 % addAnalogInputChannel(daqCal,'Dev4','ai3','Voltage');   % Hotwire
-% 
+%
 % %addAnalogInputChannel(daqCal,'Dev4','ai1','Voltage');   % Scanivalve
 % %addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');   % Limit Switch
 %%
@@ -44,7 +45,7 @@ end
 
 % %% Default motor to 0
 % daqCal.outputSingleScan(0)
-% 
+%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Calibration Parameters
 daqCal.Rate = 10000;    % Data acquisition frequency
@@ -135,3 +136,4 @@ save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','transducer')
 
 clearvars -except motor
 cd ..
+end
