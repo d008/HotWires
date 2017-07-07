@@ -1,36 +1,40 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[pathstr,name,ext] = fileparts(mfilename('fullpath'));
+addpath(genpath(pathstr))
 %% functions
-
-
+%function motorSetup()
 warning('off')
 % Connect to motor
 %motor = instrfind('Type', 'serial', 'Port', 'COM5', 'Tag', '')
-motor = instrfind('Type', 'visa-serial', 'RsrcName', 'ASRL5::INSTR', 'Tag', '');
-
-% Create the serial port object if it does not exist
-% otherwise use the object that was found.
+motor = instrfind('Type', 'visa-serial', 'RsrcName', 'ASRL5::INSTR', 'Tag', '')
 if isempty(motor)
-    %motor = serial('COM5');
     motor = visa('NI', 'ASRL5::INSTR');
-    %set(motor,'BaudRate',9600,'Parity','none','DataBits',8,'FlowControl','none','StopBits',1);
 else
     fclose(motor);
     motor = motor(1);
 end
+set(motor, 'Terminator', {'CR','CR'});
+set(motor, 'Timeout', 0.01);
 fopen(motor);
+global motor
+
+% Create the serial port object if it does not exist
+% otherwise use the object that was found.
 %query(motor,'/1?8')
 % Flush the data in the input buffer.
 flushinput(motor);
-fclose(motor);
+% fclose(motor);
 locate(motor)
 
-d = daq.getDevices;
-s = daq.createSession('ni')
-addAnalogInputChannel(s,'Dev4','ai7','Voltage');
-s.Rate = 100000;
-s.IsContinuous = false;
-s.DurationInSeconds = 0.001
-s
+
+
+% d = daq.getDevices;
+% s = daq.createSession('ni')
+% addAnalogInputChannel(s,'Dev4','ai7','Voltage');
+% s.Rate = 25000;
+% s.IsContinuous = false;
+% s.DurationInSeconds = 0.01;
+
 
 %% Default Settings
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,5 +117,5 @@ fclose(motor)
 % slowCenter = slowWall;
 % slowCenter.direction = 'P';
 
-
+%end
 %%

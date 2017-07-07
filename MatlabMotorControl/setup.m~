@@ -24,6 +24,8 @@ flushinput(motor);
 % fclose(motor);
 locate(motor)
 
+
+
 % d = daq.getDevices;
 % s = daq.createSession('ni')
 % addAnalogInputChannel(s,'Dev4','ai7','Voltage');

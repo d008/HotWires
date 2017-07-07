@@ -1,8 +1,25 @@
 % Gather Daq Devices
 function runCalibration(fname)
+%% Move
+% clc
+% reply = input('Centerline position (mm)? : ');
+% 
+% while isempty(reply) 
+%     reply = input('\n Empty input: Centerline position (mm)? : ');
+% end
+% %pos = locate(motor);
+% pos = 1;
+% disp(sprintf('Current location is %0.4f mm \n',pos))
+% disp(sprintf('Press enter to move %0.4f mm?',reply-pos))
+% pause
+
+%%
 clc
 [pathstr,name,ext] = fileparts(mfilename('fullpath'));
-addpath(pathstr);
+cd(pathstr); 
+cd ..;
+
+%addpath(fullfile(
 direc = uigetdir;
 [SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
 cd(direc);cd(fname)
