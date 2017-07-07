@@ -10,7 +10,8 @@ ySet = logspace(log10(ymin),log10(ymax),numPos);    %Y - Location set points
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Generate Precal file
 direc = uigetdir;
-fname = 'Precal';mkdir(direc,fname);
+fname = 'Precal';
+[SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
 cd(direc);cd(fname)
 clc
 %% Query centerline
@@ -57,29 +58,21 @@ Vset = 6.8;              % Voltage Set point
 Vout = zeros(sampleDuration*daqCal.Rate,1)+Vset;
 rampSpeed = .1;          % V/sec
 
-%% Ramp voltage to test point
-%queueOutputData(daqCal,linspace(Vtemp,Vset,daqCal.Rate/rampSpeed*abs(Vset-Vtemp)));
+%queueOutputData(daqCal,linspace(Vtemp,Vset,daqCal.Rate*rampTime))
 %daqCal.startForeground();
+% daqCal.outputSingleScan(Vset)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Move to wall
 % [pos, pos2] = locate(motor);
 % pos = move(-pos2,motor,2000*256,256);
+
 % [pos, pos2] = locate(motor);
 % disp(sprintf('Current location is %0.4f mm \n',pos))
-for i = 1:numPos
-    if(i > 1)
-        % pos = move(ySet(i),motor,2000*256,256);
-    end
-    yActual(i) = pos;
-    %queueOutputData(daqCal,Vout);
-    %[captured_data,time] = daqCal.startForeground();
-
-end
-
 
 %% Generate Postcal file
-fname = 'Postcal';mkdir(direc,fname);
+fname = 'Postcal';
+[SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
 cd(direc);cd(fname)
 
 %% Move to centerline for Postcal

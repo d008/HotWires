@@ -1,6 +1,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
 [pathstr,name,ext] = fileparts(mfilename('fullpath'));
-addpath(genpath(pathstr))
+cd(pathstr); cd ..;cd ..;
+addpath(genpath(pwd));
+cd(pathstr);
+
 %% functions
 %function motorSetup()
 warning('off')
@@ -25,7 +29,7 @@ global motor
 flushinput(motor);
 % fclose(motor);
 locate(motor)
-
+step = 256; speed = 2000*step;
 
 
 % d = daq.getDevices;

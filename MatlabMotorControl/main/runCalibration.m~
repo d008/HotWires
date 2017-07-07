@@ -1,5 +1,5 @@
 % Gather Daq Devices
-function [Vset] = runCalibration(varargin)
+function runCalibration(varargin)
 %%
 if nargin<1;
     [pathstr,name,ext] = fileparts(mfilename('fullpath'));
@@ -8,30 +8,25 @@ if nargin<1;
     fname = input('Folder name: ','s');
     [SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
     cd(direc);cd(fname)
-
-%     %% DAQ Setup
-%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     d = daq.getDevices; daqCal = daq.createSession('ni')
-%     
-%     % Add Channels to daq
-%     addAnalogOutputChannel(daqCal,'Dev4','ao0','Voltage');          % Motor
-%     Controller Voltage
-%     
-%     addAnalogInputChannel(daqCal,'Dev4','ai0','Voltage');           % Temperature
-%     addAnalogInputChannel(daqCal,'Dev4','ai2','Voltage');           % Tunnel Static
-%     Pressure addAnalogInputChannel(daqCal,'Dev4','ai3','Voltage');  % Hotwire
-%     
-%     %addAnalogInputChannel(daqCal,'Dev4','ai1','Voltage');          % Scanivalve
-%     %addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');          % Limit Switch
-%     
-%     %% Default motor to 0
-%     daqCal.outputSingleScan(0)
-%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 clc
 
-
-%% Select Proper Transducer
+% %%
+% d = daq.getDevices;
+% daqCal = daq.createSession('ni')
+%
+% % Add Channels to daq
+% addAnalogOutputChannel(daqCal,'Dev4','ao0','Voltage');  % Motor Controller Voltage
+%
+% addAnalogInputChannel(daqCal,'Dev4','ai0','Voltage');   % Temperature
+% addAnalogInputChannel(daqCal,'Dev4','ai2','Voltage');   % Tunnel Static Pressure
+% addAnalogInputChannel(daqCal,'Dev4','ai3','Voltage');   % Hotwire
+%
+% %addAnalogInputChannel(daqCal,'Dev4','ai1','Voltage');   % Scanivalve
+% %addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');   % Limit Switch
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Select Proper Transducer
 transducer = 0.2; %psi
 % transducer = 1; %psi
 % transducer = 5; %psi
@@ -49,28 +44,28 @@ switch(transducer)
         disp('0.2 psi transducer default')
         %addAnalogInputChannel(daqCal,'Dev4','ai4','Voltage');   % 0.2 PSI transducer
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %% Default motor to 0
+% daqCal.outputSingleScan(0)
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Calibration Parameters
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 daqCal.Rate = 10000;    % Data acquisition frequency
 sampleDuration = 9;     % Data sample time
 numPoints = 4;          % Number of samples
 Vmax = 6.8;             % Max voltage (0-10V)
 rampSpeed = .1;         % V/sec
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 Vout = zeros(sampleDuration*daqCal.Rate,1);
 Vs = linspace(Vmax,0,numPoints);
 diffVs = [Vs(1), diff(Vs)];
 Vset = 0;
-
-%% Set the pause criteria
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Set the pause criteria
 pauseTimes = Vs*0+30;       %Default wait time 30 seconds
 pauseTimes(Vs <= 4) = 1;%5*60; %Velocities less than ~10m/s wait 5 min
 pauseTimes(Vs > 4) = 1; %20;    %Velocities larger than ~10m/s wait 20 sec
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %% Iteration
 figure(1)
 clf
@@ -93,7 +88,7 @@ for i = 1:numPoints
     % %     %daqCal.outputSingleScan(Vtemp)
     
     %%%% Simpler Ramp
-    %queueOutputData(daqCal,linspace(Vset,V(i),daqCal.Rate*rampTime));
+    %queueOutputData(daqCal,linspace(Vset,V(i),daqCal.Rate*rampTime))
     %daqCal.startForeground();
     
     fprintf('\tPausing for %d seconds \n',pauseTimes(i))
@@ -102,7 +97,7 @@ for i = 1:numPoints
     
     
     %%% Data Acquisition
-    %queueOutputData(daqCal,Vout+Vset);
+    %queueOutputData(daqCal,Vout+Vset)
     %[captured_data,time] = daqCal.startForeground();
     
     %%% Temporary Data
