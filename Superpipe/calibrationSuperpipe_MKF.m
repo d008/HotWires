@@ -7,9 +7,10 @@ Gain = 64;
 Offset = -0.776;
 R0=146.8;
 Rext = 212;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 alpha = 2e-3;
 Thot = (Rext/R0-1)./alpha;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 disp('Select root directory of Precal and Postcal')
 Folder = uigetdir(pwd);

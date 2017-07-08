@@ -5,6 +5,8 @@ cd(pathstr); cd ..;cd ..;
 addpath(genpath(pwd));
 cd(pathstr);
 
+online = 0 ; 
+if online
 %% functions
 %function motorSetup()
 warning('off')
@@ -71,3 +73,4 @@ out = query(motor,settingsString(motorSettings));
 fclose(motor)
 
 %%
+end
