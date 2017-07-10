@@ -39,9 +39,9 @@ daqCal.outputSingleScan(0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 daqCal.Rate = 10000;    % Data acquisition frequency
 sampleDuration = 90;     % Data sample time
-numPoints = 20;          % Number of samples
+numPoints = 10;          % Number of samples
 Vmax = 6.8;             % Max voltage (0-10V)
-rampSpeed = .04;         % V/sec
+rampSpeed = .4;         % V/sec
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Vout = zeros(sampleDuration*daqCal.Rate,1);
@@ -52,7 +52,7 @@ Vset = 0;
 %% Set the pause criteria
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pauseTimes = Vs*0+30;       %Default wait time 30 seconds
-pauseTimes(Vs <= 3) = 60; %Velocities less than ~10m/s wait 5 min
+pauseTimes(Vs <= 3) = 20; %Velocities less than ~10m/s wait 5 min
 pauseTimes(Vs > 3) = 20;    %Velocities larger than ~10m/s wait 20 sec
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -115,7 +115,7 @@ save('all.mat','calData')
 save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','ichan')
 
 ch = addDigitalChannel(daqCal,'Dev4',transducer.DChannel,'OutputOnly');% Motor Controller Voltage
-outputSingleScan(daqCal,0);
+outputSingleScan(daqCal,[Vset,0]);
 daqCal.removeChannel(length(daqCal.Channels))
 
 %DOWN RAMP

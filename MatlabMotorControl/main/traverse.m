@@ -3,7 +3,7 @@ classdef traverse
     %   Detailed explanation goes here
     
     properties
-        speed = 2000*256;
+        speed = 1600*256;
         ustep = 256;
         motorSettings;
         motor;
@@ -27,8 +27,6 @@ classdef traverse
             set(obj.motor, 'Timeout', 0.01);
             fopen(obj.motor);
             flushinput(obj.motor);
-            obj.ustep = 256;
-            obj.speed = 2000*obj.ustep;
             
             %% Default Settings
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -45,7 +43,7 @@ classdef traverse
             %Acceleration : 0-65000
             obj.motorSettings = setfield(obj.motorSettings,'acceleration',1000);
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            settingsString = @(defsetting) sprintf('/1s0F0m%dh%dj%dV%dL%do%dJ%dR',...
+            settingsString = @(defsetting) sprintf('/1s0F1m%dh%dj%dV%dL%do%dJ%dR',...
                 defsetting.runningCurrent,...
                 defsetting.holdingCurrent,...
                 defsetting.stepResolution,...
@@ -73,6 +71,12 @@ classdef traverse
             flushinput(obj.motor);
             loc = obj.locate();
             fclose(obj.motor);
+        end
+        
+        %Zero the encoder
+        function  setParams(obj,SPEED,USTEP)
+            obj.ustep = USTEP;
+            obj.speed = SPEED*obj.ustep;
         end
         
         function [pos,pos2] = locate(obj)
@@ -157,7 +161,7 @@ classdef traverse
         %zeroEncoder(motor,100000);
         function findWall(obj)
             
-            daqCal = daq.createSession('ni')
+            daqCal = daq.createSession('ni');
             ch = addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');
             ch.Name = 'LimitSwitch';
             daqCal.Rate = 25000;
@@ -179,10 +183,9 @@ classdef traverse
             fprintf(obj.motor,temp)
             isTouching =daqCal.inputSingleScan;
             tic
-            while isTouching  < 0.2;
+            while isTouching  >2.5;
                 data = daqCal.startForeground();
-                isTouching = min(data)
-                mean(data)
+                isTouching = median(data)
             end
             toc
             disp('WALL FOUND')

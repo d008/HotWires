@@ -23,7 +23,7 @@ Scanivalve.Name = 'Scanivalve';     Scanivalve.Range = [-5,5];
 TunnelStatic.Channel = 'ai2';       TunnelStatic.cal = @(V) V.*4000/10.*6894.75729 ;
 TunnelStatic.Name = 'TunnelStatic'; TunnelStatic.Range = [-10,10];
 
-Dantec.Channel = 'ai3';             Dantec.cal = @(V,P) @(P,V) polyval(P,V);
+Dantec.Channel = 'ai3';             Dantec.cal =  @(P,V) polyval(P,V);
 Dantec.Name = 'Dantec';             Dantec.Range = [-10,10];
 
 Pitot02.Channel = 'ai4';            Pitot02.cal = @(V) V*0.2/5*6894.75729; %0.2psi/5V
@@ -38,4 +38,4 @@ Pitot5.Name = 'Pitot5';             Pitot5.Range = [-5,5];
 LimitSwitch.Channel = 'ai7';        LimitSwitch.cal = @(V) min(V)>1;
 LimitSwitch.Name = 'LimitSwitch';   LimitSwitch.Range = [-10,10];
 
-d = daq.getDevices; daqCal = daq.createSession('ni')
+d = daq.getDevices; daqCal = daq.createSession('ni');
