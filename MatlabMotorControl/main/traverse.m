@@ -160,7 +160,7 @@ classdef traverse
         
         %zeroEncoder(motor,100000);
         function findWall(obj)
-            
+            disp('FIND THE WALL')
             daqCal = daq.createSession('ni');
             ch = addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');
             ch.Name = 'LimitSwitch';
@@ -173,7 +173,8 @@ classdef traverse
             end
             [p1,p2]= obj.locate()
             if p2 > 0.5
-                obj.move(-p2+0.1)
+                disp(num2str(-p2+0.25))
+                obj.move(-p2+0.25)
             end
             [p1,p2]= obj.locate()
             if strcmp(obj.motor.Status,'closed')

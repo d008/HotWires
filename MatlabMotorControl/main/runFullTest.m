@@ -6,53 +6,65 @@ cd(pathstr);
 
 %% Testing Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-numPos = 10;        % Number of y points
-ymin = 170e-3;      % Closest point to the wall (mm)
-ymax = 50;          % Furthest point to the wall (mm)
-ySet = logspace(log10(ymin),log10(ymax),numPos);    %Y - Location set points
+data.numPos =   40;        % Number of y points
+data.ymin =     535e-3;      % Closest point to the wall (mm)
+data.ymax =     67;          % Furthest point to the wall (mm)
+data.ySet = logspace(log10(data.ymin),log10(data.ymax),data.numPos);    %Y - Location set points
+data.D =        0.1298448;
+data.pitot =    3.209;
+data.cline =    (data.D*1000-data.ymin-data.pitot)/2;
 
-yActual = ySet*0;
-meanU = ySet*0;
-varU = ySet*0;
+disp('Are the following testing parameters correct [Press Enter]?')
+reply = input(sprintf('y_offset: %0.3f mm\ny_max: %0.3f mm\nPitot dist: %0.3f mm\nCenterline: %0.3f mm\n',...
+    data.ymin,data.ymax,data.pitot,data.cline));
 
-NSTAP.Gain = 64;          %Gain on the Dantec
-NSTAP.Offset = -0.776;    %Voltage
-NSTAP.R0=146.8;
-NSTAP.Rext = 212;
-NSTAP.alpha = 2e-3;
-NSTAP.Thot = (NSTAP.Rext/NSTAP.R0-1)./NSTAP.alpha;
+
+data.yActual = data.ySet*0;meanU = data.ySet*0;varU = data.ySet*0;
+data.TempK = [data.yActual,0];data.Static_Pa = data.TempK;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+data.Gain =     64;          %Gain on the Dantec
+data.Offset =   -0.654;    %Voltage
+data.R0=        110.5;
+data.Rext =     153;
+
+data.alpha =    2e-3;
+data.Thot = (data.Rext/data.R0-1)./data.alpha;
 disp('Are the following testing parameters correct [Press Enter]?')
 reply = input(sprintf('Gain: %i\nOffset: %0.3f V\nR_0: %0.2f ohms\nRext: %0.2f ohms\n',...
-    NSTAP.Gain,NSTAP.Offset,NSTAP.R0,NSTAP.Rext));
+    data.Gain,data.Offset,data.R0,data.Rext));
+
+
 %% Sampling Parameters
-rate = 300000;    % Data acquisition frequency
-dur = 90;           % Data sample time sec
-Vset = 6.0;              % Voltage Set point
-rampSpeed = .1;          % V/sec
+data.rate =     200000;    % Data acquisition frequency
+data.dur =      60;           % Data sample time sec
+data.Vset =     6.0;              % Voltage Set point
+rampSpeed =     .04;          % V/sec
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Generate Precal file
 direc = uigetdir;
 fname = 'Precal';mkdir(direc,fname);
 cd(direc);cd(fname)
-clc
+
 %% Query centerline
 m = traverse();
-center = input('Centerline position (mm)? : ');
-while isempty(center)
-    center = input('\n Empty input: Centerline position (mm)? : ');
-end
-[pos,~] = m.locate();
-fprintf('Current location is %0.4f mm \n\n',pos)
-fprintf('Press enter to move %0.4f mm?\n',center-pos)
-pause
+% center = input('Centerline position (mm)? : ');
+% while isempty(center)
+%     center = input('\n Empty input: Centerline position (mm)? : ');
+% end
+% [pos,~] = m.locate();
+% fprintf('Current location is %0.4f mm \n\n',pos)
+% fprintf('Press enter to move %0.4f mm?\n',center-pos)
+% pause
 
 % Move to centerline for Precal
+[pos,~] = m.locate();
 disp('Moving to Centerline')
-[pos,~] = m.move(center-pos);
-if abs(center - pos) > 0.3
-    [~,~] = m.move(center-pos);
-end
+[pos,~] = m.move(data.cline-pos);
+% if abs(center - pos) > 0.3
+%     [~,~] = m.move(center-pos);
+% end
 
 %% Start Precal
 disp('Starting Precal')
@@ -71,7 +83,7 @@ ch.Range = MotorOut.Range;
 %%
 %Ramp to setpoint and remove channel
 disp('Ramping motor down')
-queueOutputData(daqCal,linspace(Vtemp,Vset,daqCal.Rate/rampSpeed*abs(Vset-Vtemp))');
+queueOutputData(daqCal,linspace(Vtemp,data.Vset,daqCal.Rate/rampSpeed*abs(data.Vset-Vtemp))');
 daqCal.startForeground();
 daqCal.removeChannel(length(daqCal.Channels));
 
@@ -88,15 +100,22 @@ fname = 'Data';mkdir(direc,fname);
 cd(direc);cd(fname);
 %% Move to wall
 [pos, pos2] = m.locate();
-pos = m.move(-pos2);
-[pos, pos2] = m.locate();
-disp(sprintf('Current location is %0.4f mm \n',pos))
-for i = 1:numPos
-    fprintf('Starting point - %d/%d :\n\tMoving to %d um\n',i,numPos,round(yActual(i)*1000))
-    if(i > 1)
-        pos = m.move(ySet(i)-pos);
+disp(sprintf('Current location is %0.4f mm \n',pos));
+m.findWall()
+m.move(0.246);
+%Backlash Correct()
+
+for i = 1:data.numPos
+    fprintf('Starting point - %d/%d :\n\tMoving to %d um\n',i,data.numPos,round(data.ySet(i)*1000))
+    if i == 1
+        pos = m.locate();
+%         if(data.ySet(i)-pos)>0.1
+%             pos = m.move(data.ySet(i)-pos);
+%         end
+    elseif(i > 1)
+        pos = m.move(data.ySet(i)-data.ySet(i-1));
     end
-    yActual(i) = pos;
+    data.yActual(i) = pos+ymin;
     
     %Take the Temperature & Static Pressure
     ichan =  {Temperature,TunnelStatic};
@@ -112,6 +131,9 @@ for i = 1:numPos
     pre_data = daqCal.startForeground();
     daqCal.removeChannel(1:length(daqCal.Channels))
     
+    data.TempK(i) = Temperature.cal(mean(pre_data(:,1)));
+    data.Static_Pa(i) = TunnelStatic.cal(mean(pre_data(:,2)));
+    
     %Take the hotwire data
     ichan =  {Dantec};
     %Add input channels
@@ -120,13 +142,13 @@ for i = 1:numPos
         ch.Name = ichan{j}.Name;
         ch.Range = ichan{j}.Range;
     end
-    daqCal.Rate = rate;
-    daqCal.DurationInSeconds = dur;
+    daqCal.Rate = data.rate;
+    daqCal.DurationInSeconds = data.dur;
     
     fprintf('\tSampling the Dantec for %d secs\n',daqCal.DurationInSeconds)
     [data_hw,time] = daqCal.startForeground();
     daqCal.removeChannel(1:length(daqCal.Channels));
-        
+    
     fprintf('\tConverting Data with Precal\n')
     hwdata = Dantec.cal(P,data_hw);
     meanU(i) = mean(hwdata);
@@ -134,52 +156,112 @@ for i = 1:numPos
     
     %Plots the raw signal
     figure(1)
-    semilogx(ySet(1:i)./eta,meanU(1:i),'bo-')
+    semilogx((data.yActual(1:i))./(eta),meanU(1:i)/utau,'bo-')
     xlabel('y^+')
-    ylabel('U(m/s)')
+    ylabel('U^+')
     
     %Plots the raw signal
     figure(2)
-    semilogx(ySet(1:i)./eta,varU(1:i),'bo-')
+    semilogx((data.yActual(1:i))./(eta),varU(1:i)/utau^2,'bo-')
     xlabel('y^+')
-    ylabel('u^2(m/s)')
+    ylabel('u^{2+}')
     
     drawnow
     
-    name = sprintf('V%0.2f_Index%i_YLoc%0.2f.bin',Vset,i,ySet(i)*1000);
-    fid = fopen(name,'wb');
-    fwrite(fid,[time,data_hw],'ubit16'); %
+    data.name{i} = sprintf('V%0.2f_Index%i_YLoc%0.2f.bin',data.Vset,i,data.ySet(i)*1000);
+    fid = fopen(data.name{i},'wb');
+    fwrite(fid,[time,data_hw],'single'); %
     fclose(fid);
-    %fread(fid,[daqSampleTime*daqSampleFreq],'ubit16');
+    %fread(fopen(data.name{i},'r'),[2,inf],'ubit16');
 end
+
+%Take the Temperature & Static Pressure
+ichan =  {Temperature,TunnelStatic};
+%Add input channels
+for j = 1:length(ichan)
+    ch = addAnalogInputChannel(daqCal,'Dev4',ichan{j}.Channel,'Voltage');% Motor Controller Voltage
+    ch.Name = ichan{j}.Name;
+    ch.Range = ichan{j}.Range;
+end
+daqCal.Rate = 10000;
+daqCal.DurationInSeconds = 10;
+fprintf('\tSampling the temperature and static pressure for %d secs\n',daqCal.DurationInSeconds)
+pre_data = daqCal.startForeground();
+daqCal.removeChannel(1:length(daqCal.Channels))
+
+data.TempK(i+1) = Temperature.cal(mean(pre_data(:,1)));
+data.Static_Pa(i+1) = TunnelStatic.cal(mean(pre_data(:,2)));
+
+%Get the average temperature during the run
+data.TempK = data.TempK(1:end-1)+diff(data.TempK)./2;
+data.Static_Pa = data.Static_Pa(1:end-1)+diff(data.Static_Pa)./2;
+%% Save the testing Data
+
+save('acquisition.mat','data')
+
 %% Ramp down for the Postcal
 %Add motor out
 disp('Adding motor channel')
 ch = addAnalogOutputChannel(daqCal,'Dev4',MotorOut.Channel,'Voltage');% Motor Controller Voltage
 ch.Name = MotorOut.Name;
 ch.Range = MotorOut.Range;
-
+%%
 %Ramp to setpoint and remove channel
 disp('Ramping motor down')
-daqCal.rate = 1000;
-queueOutputData(daqCal,linspace(Vset,0,daqCal.Rate/rampSpeed*abs(Vset)));
+
+daqCal.Rate = 1000;
+queueOutputData(daqCal,linspace(data.Vset,0,daqCal.Rate/rampSpeed*abs(data.Vset))');
 daqCal.startForeground();
 daqCal.removeChannel(length(daqCal.Channels));
 
 %% Generate Postcal file
+cd('Precal'); load('summary.mat','U','V');cd ..
+
 fname = 'Postcal';mkdir(direc,fname);
 cd(direc);cd(fname);
-%% Move to centerline for Postcal
+% Move to centerline for Postcal
 disp('Moving to Centerline')
-[pos,~] = m.move(center-pos);
-if abs(center - pos) > 0.3
-    [~,~] = m.move(center-pos);
+[pos,~] = m.move(data.cline-pos);
+if abs(data.cline - pos) > 0.3
+    [~,~] = m.move(data.cline-pos);
 end
-%% Start Postcal
+% Start Postcal
 disp('Starting Postcal')
+figure(1)
+clf
+plot(U,V,'rx')
+hold on
+
 Vtemp = runCalibration(fname);
-%% Ramp voltage down
+% Ramp voltage down
+DAQSetup
+% Ramp down for the Postcal
+%Add motor out
+disp('Adding motor channel')
+ch = addAnalogOutputChannel(daqCal,'Dev4',MotorOut.Channel,'Voltage');% Motor Controller Voltage
+ch.Name = MotorOut.Name;
+ch.Range = MotorOut.Range;
+
+disp('Ramping motor down')
 queueOutputData(daqCal,linspace(Vtemp,0,daqCal.Rate/rampSpeed*abs(Vtemp))');
 daqCal.startForeground();
 cd ..
 %release(daqCal);
+% Process
+process
+send_text_message('703-508-3338','T-Mobile',sprintf('Re_tau = %d',round(data.D/2/eta*1000)),'Test Completed')
+% 
+% DAQSetup
+% %% Ramp down for the Postcal
+% %Add motor out
+% DAQSetup
+% disp('Adding motor channel')
+% ch = addAnalogOutputChannel(daqCal,'Dev4',MotorOut.Channel,'Voltage');% Motor Controller Voltage
+% ch.Name = MotorOut.Name;
+% ch.Range = MotorOut.Range;
+% 
+% 
+% queueOutputData(daqCal,linspace(6,0,daqCal.Rate/rampSpeed*abs(6))');
+% daqCal.startForeground();
+% cd ..
+% %release(daqCal);

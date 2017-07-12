@@ -14,6 +14,8 @@ DAQSetup
 %% Select Proper Transducer
 transducer = Pitot02;
 ch = addDigitalChannel(daqCal,'Dev4',transducer.DChannel,'OutputOnly');% Motor Controller Voltage
+
+%Open valve to pitot transducer
 outputSingleScan(daqCal,1);
 daqCal.removeChannel(length(daqCal.Channels))
 
@@ -38,10 +40,10 @@ daqCal.outputSingleScan(0);
 %% Calibration Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 daqCal.Rate = 10000;    % Data acquisition frequency
-sampleDuration = 90;     % Data sample time
-numPoints = 10;          % Number of samples
+sampleDuration = 60;     % Data sample time
+numPoints = 20;          % Number of samples
 Vmax = 6.8;             % Max voltage (0-10V)
-rampSpeed = .4;         % V/sec
+rampSpeed = .1;         % V/sec
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Vout = zeros(sampleDuration*daqCal.Rate,1);
@@ -52,13 +54,12 @@ Vset = 0;
 %% Set the pause criteria
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pauseTimes = Vs*0+30;       %Default wait time 30 seconds
-pauseTimes(Vs <= 3) = 20; %Velocities less than ~10m/s wait 5 min
-pauseTimes(Vs > 3) = 20;    %Velocities larger than ~10m/s wait 20 sec
+pauseTimes(Vs <= 3) = 60; %Velocities less than ~10m/s wait 5 min
+pauseTimes(Vs > 3) = 30;    %Velocities larger than ~10m/s wait 20 sec
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Iteration
 figure(1)
-clf
 xlabel('U (m/s)')
 ylabel('Voltage')
 hold on
@@ -83,19 +84,24 @@ for i = 1:numPoints
     [captured_data,time] = daqCal.startForeground();
     
     %%% Save the data
-    data = struct('TempK',mean(captured_data(:,1)),...
-        'Static_Pa',mean(captured_data(:,2)),...
+    data = struct('TempK',Temperature.cal(mean(captured_data(:,1))),...
+        'Static_Pa',TunnelStatic.cal(mean(captured_data(:,2))),...
         'V',mean(captured_data(:,3)),...
-        'Pitot_Pa',mean(captured_data(:,4)),...
+        'Pitot_Pa',transducer.cal(mean(captured_data(:,4))),...
         'Raw',captured_data,...
         'Rate',daqCal.Rate,...
         'sampleDuration',sampleDuration);
-    data.rho = ZSI(Temperature.cal(data.TempK),TunnelStatic.cal(data.Static_Pa)+101325);
+    if(mean(data.Static_Pa)<100000)
+        [Rho, mu] = ZSI(mean(data.TempK),101325);
+    else
+        [Rho, mu] = ZSI(mean(data.TempK),mean(data.Static_Pa));
+    end
+    data.rho = Rho;
     if i == 1
         calData{1} = data;
     end
     %data.Pitot_Pa = data.Pitot_Pa;% - calData{1}.Pitot_Pa;
-    data.U = sqrt(2/data.rho*transducer.cal(data.Pitot_Pa - calData{1}.Pitot_Pa));
+    data.U = sqrt(2/data.rho*(data.Pitot_Pa - calData{1}.Pitot_Pa));
     calData{i} = data;
     tempName= sprintf('Raw%d.mat',i);
     fprintf('\tSaving Data as %s \n\n',tempName)
@@ -114,9 +120,12 @@ hold off
 save('all.mat','calData')
 save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','ichan')
 
+%Close valve to pitot transducer
 ch = addDigitalChannel(daqCal,'Dev4',transducer.DChannel,'OutputOnly');% Motor Controller Voltage
 outputSingleScan(daqCal,[Vset,0]);
 daqCal.removeChannel(length(daqCal.Channels))
+
+%PICK A VARIANCE CRITERIA TO ELMINATE TRANSITION
 
 %DOWN RAMP
 % daqCal.Rate = 100;

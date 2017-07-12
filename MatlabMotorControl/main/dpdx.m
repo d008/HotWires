@@ -1,7 +1,7 @@
 function [ ] = dpdx(varargin)
 if nargin<1;
     %Default taps to sample
-    taps = 3:2:21;
+    taps = 3:1:21;
 else
     %user provided tap list
     taps = varargin{1};
@@ -76,13 +76,14 @@ else
 [Rho, mu] = ZSI(mean(TempK),mean(Static_Pa));
 end
 utau = sqrt((-DPDX2./Rho)*(D./4))
-eta = mu./Rho./utau;
+eta = mu./Rho./utau*1000;
 
 %Shove all of the data into a struct for convenience.
 dpdx.P = P; dpdx.P_std = P_std;dpdx.Static_Pa = Static_Pa;
 dpdx.TempK = TempK;dpdx.taps = taps;dpdx.dx = dx;
 dpdx.DPDX1 = DPDX1;dpdx.DPDX2 = DPDX2;
 dpdx.Rho  = Rho;dpdx.mu = mu;dpdx.eta = eta;dpdx.utau= utau;
+fprintf('Re_tau = %d',round(data.D/2/eta*1000))
 
 save('dpdx.mat','dpdx','utau','eta')
 end
