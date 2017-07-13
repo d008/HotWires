@@ -1,5 +1,6 @@
-
 clear
+load('dpdx.mat')
+
 cd('Precal'); load('summary.mat','U','V','TempK');cd ..
 U_pre = U; V_pre= V; T_pre = TempK;
 cd('Postcal'); load('summary.mat','U','V','TempK');cd ..
@@ -41,42 +42,58 @@ rsq = 1 - S.normr^2 / ((length(U_all(cal_data))-1) * var(U_all(cal_data)))...
 
 Vs = linspace(min(V_all),max(V_all),100);
 plot(f(P,Vs,T_pre(1)),Vs,'k')
-plot(f(Ppre,Vs,T_pre(1)),Vs,'r')
-plot(f(Ppost,Vs,T_pre(1)),Vs,'b')
+plot(f(Ppre,Vs,T_pre(1)),Vs,'b')
+plot(f(Ppost,Vs,T_pre(1)),Vs,'r')
 hold off
 print('cal','-dpng')
 
 %%
 meanU = data.ySet*0;
 varU = data.ySet*0;
+skewU = data.ySet*0;
+
 tic
 cd('Data')
 for i  = 1:data.numPos
-    temp = fread(fopen(data.name{i},'r'),[data.dur*data.rate,2],'single');
+    fl = fopen(data.name{i},'r');
+    temp = fread(fl,[data.dur*data.rate,2],'single');
+    fclose(fl);
     hwData = f(P,temp(:,2),data.TempK(i));
     meanU(i) = mean(hwData);
     varU(i) = var(hwData);
+    skewU(i) = skewness(hwData);
     fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
     
 end
-cd ..
-%%
-load('dpdx.mat')
 
-figure(1)
+%%
+%data.yActual = data.yActual+data.ymin-47e-3;
+figure(2)
 semilogx(data.yActual./eta,meanU./utau,'-bo')
 xlabel('y^+')
 ylabel('U^+')
 
-figure(2)
+figure(3)
 semilogx(data.yActual./eta,varU./utau.^2,'-bo')
 xlabel('y^+')
 ylabel('u^2^+')
-%%
 
-figure(1)
+figure(4)
+semilogx(data.yActual./eta,skewU,'-bo')
+xlabel('y^+')
+ylabel('S')
+
+y_plus = data.yActual./eta;
+U_plus = meanU./utau;
+u2_plus = varU./utau.^2;
+
+save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','-append')
+cd ..
+%%
+load('re150000.mat')
+figure(2)
 hold on
 semilogx(y_plus,U_plus,'-')
-figure(2)
+figure(3)
 hold on
 semilogx(y_plus,u2_plus,'-')

@@ -9,7 +9,7 @@ if nargin<1;
     [SUCCESS,MESSAGE,MESSAGEID] = mkdir(direc,fname);
     cd(direc);cd(fname)
 end
-clc
+
 DAQSetup
 %% Select Proper Transducer
 transducer = Pitot02;
@@ -40,14 +40,14 @@ daqCal.outputSingleScan(0);
 %% Calibration Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 daqCal.Rate = 10000;    % Data acquisition frequency
-sampleDuration = 60;     % Data sample time
+sampleDuration = 30;     % Data sample time
 numPoints = 20;          % Number of samples
-Vmax = 6.8;             % Max voltage (0-10V)
+Vmax = 8.2;             % Max voltage (0-10V)
 rampSpeed = .1;         % V/sec
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Vout = zeros(sampleDuration*daqCal.Rate,1);
-Vs = linspace(0,Vmax,numPoints);
+Vs = [linspace(0,2.8,10),linspace(3,Vmax,numPoints-10)];%linspace(0,Vmax,numPoints);
 diffVs = [Vs(1), diff(Vs)];
 Vset = 0;
 
@@ -119,7 +119,7 @@ end
 hold off
 save('all.mat','calData')
 save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','ichan')
-
+print('cal','-dpng')
 %Close valve to pitot transducer
 ch = addDigitalChannel(daqCal,'Dev4',transducer.DChannel,'OutputOnly');% Motor Controller Voltage
 outputSingleScan(daqCal,[Vset,0]);

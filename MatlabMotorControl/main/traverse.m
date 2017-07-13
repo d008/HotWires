@@ -3,7 +3,7 @@ classdef traverse
     %   Detailed explanation goes here
     
     properties
-        speed = 1600*256;
+        speed = 2000*256;
         ustep = 256;
         motorSettings;
         motor;
@@ -86,8 +86,10 @@ classdef traverse
             flushinput(obj.motor)
             pos = query(obj.motor,'/1?8','%s\n','%s\n');
             pos = str2double(pos(regexp(pos,'\d')))/2000;
+            %2000 ticks/mm
             pos2 = query(obj.motor,'/1?0','%s\n','%s\n');
             pos2 = str2double(pos2(regexp(pos2,'\d')))/800;
+            %800 steps/mm ~ 1 step = 1.25 micron
             steps = query(obj.motor,'/1?6','%s\n','%s\n');
             steps = str2double(steps(regexp(steps,'\d')));
             pos2=pos2/steps;
@@ -180,21 +182,28 @@ classdef traverse
             if strcmp(obj.motor.Status,'closed')
                 fopen(obj.motor);
             end
-            temp = sprintf('/1V%dj%d%c%dR',500,256,'D',0);
+            wspeed = 500;
+            temp = sprintf('/1V%dj%d%c%dR',wspeed,256,'D',0);
             fprintf(obj.motor,temp)
             isTouching =daqCal.inputSingleScan;
             tic
-            while isTouching  >2.5;
+            h = waitbar(0,'Please wait...');
+            disp('Stepping...')
+            tic
+            while isTouching  > 2.5;
                 data = daqCal.startForeground();
-                isTouching = median(data)
+                isTouching = median(data);
+                waitbar(min(1,toc/(250/(wspeed/256*1.25))),h,...
+                    sprintf('%0.3f',isTouching))
             end
-            toc
-            disp('WALL FOUND')
             obj.STOP()
-            disp('Encoder zeroed')
+            disp('WALL FOUND')
+            fprintf('Approx %0.3f micron \n',toc*wspeed/256*1.25)
+            toc
+            close(h)
             pause(5)
             obj.zeroEncoder();
-            
+            disp('Encoder zeroed')
             
         end
     end

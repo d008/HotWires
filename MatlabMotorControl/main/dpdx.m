@@ -83,7 +83,7 @@ dpdx.P = P; dpdx.P_std = P_std;dpdx.Static_Pa = Static_Pa;
 dpdx.TempK = TempK;dpdx.taps = taps;dpdx.dx = dx;
 dpdx.DPDX1 = DPDX1;dpdx.DPDX2 = DPDX2;
 dpdx.Rho  = Rho;dpdx.mu = mu;dpdx.eta = eta;dpdx.utau= utau;
-fprintf('Re_tau = %d',round(data.D/2/eta*1000))
+fprintf('Re_tau = %d\n',round(D/2/eta*1000))
 
 save('dpdx.mat','dpdx','utau','eta')
 end
