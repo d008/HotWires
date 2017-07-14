@@ -32,7 +32,7 @@ cd(pathstr);
 %% Testing Parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data.numPos =   40;        % Number of y points
-data.ymin =     150e-3;      % Closest point to the wall (mm)
+data.ymin =     60e-3;      % Closest point to the wall (mm)
 data.ymax =     67;          % Furthest point to the wall (mm)
 data.ySet = logspace(log10(data.ymin),log10(data.ymax),data.numPos);    %Y - Location set points
 data.D =        0.1298448;
@@ -50,7 +50,7 @@ data.TempK = [data.yActual,0];data.Static_Pa = data.TempK;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data.Gain =     64;          %Gain on the Dantec
 data.Offset =   -0.652;    %Voltage
-data.R0=        127.8;
+data.R0=        128.1;
 data.Rext =     171;
 data.l =     	60e-3;  %mm length of wire
 
@@ -97,18 +97,20 @@ disp('Starting Precal')
 tic
 Vtemp = runCalibration(fname);
 send_text_message('703-508-3338','T-Mobile','Precal Done',num2str(toc))
+%%
+cd(direc);cd(fname)
 load('summary.mat','U','V');
 poly_deg = 4;U_cutoff = 1;
 [P,S] = polyfit(V(U > U_cutoff),U(U > U_cutoff),poly_deg);
-cd ..
+cd(direc)
 DAQSetup
-%% Ramp tunnel speed to set voltage
+% Ramp tunnel speed to set voltage
 %Add motor out
 disp('Adding motor channel')
 ch = addAnalogOutputChannel(daqCal,'Dev4',MotorOut.Channel,'Voltage');% Motor Controller Voltage
 ch.Name = MotorOut.Name;
 ch.Range = MotorOut.Range;
-%%
+%
 %Ramp to setpoint and remove channel
 disp('Ramping motor down')
 queueOutputData(daqCal,linspace(Vtemp,data.Vset,daqCal.Rate/rampSpeed*abs(data.Vset-Vtemp))');
@@ -118,9 +120,12 @@ daqCal.removeChannel(length(daqCal.Channels));
 %Wait for the speed to stabilize
 disp('Pausing for 20 seconds')
 pause(20);
-%% dPdX
+% dPdX
 disp('Finding dp/dx')
-dpdx();
+%
+cd(direc)
+dPdX();
+cd(direc);
 load('dpdx.mat', 'utau', 'eta');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Data folder
@@ -132,7 +137,7 @@ disp(sprintf('Current location is %0.4f mm \n',pos));
 m.findWall()
 m.move(0.246);
 %Backlash Correct()
-%%
+%
 for i = 1:data.numPos
     fprintf('Starting point - %d/%d :\n\tMoving to %d um\n',i,data.numPos,round(data.ySet(i)*1000))
     if i == 1
@@ -246,8 +251,8 @@ daqCal.Rate = 1000;
 queueOutputData(daqCal,linspace(data.Vset,0,daqCal.Rate/rampSpeed*abs(data.Vset))');
 daqCal.startForeground();
 daqCal.removeChannel(length(daqCal.Channels));
-%%
-cd ..
+%
+cd(direc)
 % Generate Postcal file
 cd('Precal'); load('summary.mat','U','V');cd ..
 
@@ -282,10 +287,10 @@ disp('Ramping motor down')
 queueOutputData(daqCal,linspace(Vtemp,0,daqCal.Rate/rampSpeed*abs(Vtemp))');
 daqCal.startForeground();
 %
-cd ..
+cd(direc);
 %release(daqCal);
 % Process
-%%
+%
 process
 send_text_message('703-508-3338','T-Mobile',sprintf('Re_tau = %d',round(data.D/2/eta*1000)),'Test Completed')
 % 
@@ -304,17 +309,17 @@ send_text_message('703-508-3338','T-Mobile',sprintf('Re_tau = %d',round(data.D/2
 % cd ..
 % %release(daqCal);
 
- DAQSetup
+%  DAQSetup
 % %% Ramp down for the Postcal
 % %Add motor out
-DAQSetup
-disp('Adding motor channel')
-ch = addAnalogOutputChannel(daqCal,'Dev4',MotorOut.Channel,'Voltage');% Motor Controller Voltage
-ch.Name = MotorOut.Name;
-ch.Range = MotorOut.Range;
-
-
-queueOutputData(daqCal,linspace(0.6,0,daqCal.Rate/0.1*abs(0.6))');
-daqCal.startForeground();
-cd ..
+% DAQSetup
+% disp('Adding motor channel')
+% ch = addAnalogOutputChannel(daqCal,'Dev4',MotorOut.Channel,'Voltage');% Motor Controller Voltage
+% ch.Name = MotorOut.Name;
+% ch.Range = MotorOut.Range;
+% 
+% 
+% queueOutputData(daqCal,linspace(0.6,0,daqCal.Rate/0.1*abs(0.6))');
+% daqCal.startForeground();
+% cd ..
 %release(daqCal);

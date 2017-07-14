@@ -87,6 +87,7 @@ for i = 1:numPoints
     data = struct('TempK',Temperature.cal(mean(captured_data(:,1))),...
         'Static_Pa',TunnelStatic.cal(mean(captured_data(:,2))),...
         'V',mean(captured_data(:,3)),...
+        'V_std',std(captured_data(:,3)),...
         'Pitot_Pa',transducer.cal(mean(captured_data(:,4))),...
         'Raw',captured_data,...
         'Rate',daqCal.Rate,...
@@ -110,6 +111,7 @@ for i = 1:numPoints
     plot(data.U,data.V,'bo')
     U(i) = data.U;
     V(i) = data.V;
+    V_std(i) = data.V_std;
     TempK(i) = data.TempK;
     Static_Pa(i) = data.Static_Pa;
     Pitot_Pa(i) = data.Pitot_Pa;
@@ -118,7 +120,7 @@ for i = 1:numPoints
 end
 hold off
 save('all.mat','calData')
-save('summary.mat','U','V','TempK','Static_Pa','Pitot_Pa','ichan')
+save('summary.mat','U','V','V_std','TempK','Static_Pa','Pitot_Pa','ichan')
 print('cal','-dpng')
 %Close valve to pitot transducer
 ch = addDigitalChannel(daqCal,'Dev4',transducer.DChannel,'OutputOnly');% Motor Controller Voltage
