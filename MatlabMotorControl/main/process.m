@@ -27,7 +27,7 @@ plot(U_all(cal_data),V_corr(V_all(cal_data),T_all(cal_data)),'kx')
 
 xlabel('U (m/s)')
 ylabel('V (Volts)')
-legend('Precal','Postcal','location','southeast')
+legend('Postcal','Precal','location','southeast')
 set(gca,'fontsize',24)
 %%
 [P,S] = polyfit(V_corr(V_all(cal_data),T_all(cal_data)),U_all(cal_data),poly_deg);
