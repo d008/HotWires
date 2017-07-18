@@ -86,7 +86,9 @@ ylabel('S')
 y_plus = data.yActual./eta;
 U_plus = meanU./utau;
 u2_plus = varU./utau.^2;
-
+cal_curve.P = P;cal_curve.S = S;
+cal_curve.Ppre = Ppre;cal_curve.Spre = Spre;
+cal_curve.Ppost = Ppost;cal_curve.Spost = Spost;
 save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','-append')
 cd ..
 %%
