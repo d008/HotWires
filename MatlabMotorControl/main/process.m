@@ -1,59 +1,80 @@
 clear
-load('dpdx.mat')
 
+%% Load the pre and post calibration files
+load('dpdx.mat','utau','eta')
 cd('Precal'); load('summary.mat','U','V','TempK');cd ..
 U_pre = U; V_pre= V; T_pre = TempK;
 cd('Postcal'); load('summary.mat','U','V','TempK');cd ..
 U_post = U; V_post=V; T_post = TempK;
 cd('Data');load('acquisition.mat'); cd ..
-%%
-poly_deg = 4;
-U_cutoff = 1;
+%% Compute the polynomials
+poly_deg = 4;U_cutoff = 1;
 
-U_all = [U_pre,U_post];
-V_all = [V_pre,V_post];
-T_all = [T_pre,T_post];
+U_all = [U_pre,U_post]; V_all = [V_pre,V_post]; T_all = [T_pre,T_post];
 cal_data = find(U_all>U_cutoff);
 
-T_ref = T_pre(1);
-T_w = data.Thot;
+T_ref = T_pre(1);   T_w = data.Thot;
 
 V_corr = @(V,Ta) V.*sqrt((T_w-T_ref)./(T_w-Ta));
-
-plot(U_post,V_corr(V_post,T_post),'ro')
-hold on
-plot(U_pre,V_corr(V_pre,T_pre),'bo')
-plot(U_all(cal_data),V_corr(V_all(cal_data),T_all(cal_data)),'kx')
-
-xlabel('U (m/s)')
-ylabel('V (Volts)')
-legend('Postcal','Precal','location','southeast')
-set(gca,'fontsize',24)
-%%
+%Both calibrations
 [P,S] = polyfit(V_corr(V_all(cal_data),T_all(cal_data)),U_all(cal_data),poly_deg);
+%Precalibration
 [Ppre,Spre] = polyfit(V_corr(V_pre(U_pre>U_cutoff),T_pre(U_pre>U_cutoff)),...
     U_pre(U_pre>U_cutoff),poly_deg);
+%Postcalibration
 [Ppost,Spost] = polyfit(V_corr(V_post(U_post>U_cutoff),T_post(U_post>U_cutoff)),...
     U_post(U_post>U_cutoff),poly_deg);
+
 f = @(P,V,T) polyval(P,V_corr(V,T));
 %S.normr %=sqrt(sum((U_all(cal_data)-f(P,V_all(cal_data),T_all(cal_data))).^2))
 rsq = 1 - S.normr^2 / ((length(U_all(cal_data))-1) * var(U_all(cal_data)))...
     .*(length(cal_data)-1)/(length(cal_data)-length(P));
 
+%%  Plots the pre and post cals
+figure(1)
+clf
+
 Vs = linspace(min(V_all),max(V_all),100);
+plot(U_post,V_corr(V_post,T_post),'ro')
+hold on
+plot(U_pre,V_corr(V_pre,T_pre),'bo')
+plot(U_all(cal_data),V_corr(V_all(cal_data),T_all(cal_data)),'kx')
+set(gca,'fontsize',24)
 plot(f(P,Vs,T_pre(1)),Vs,'k')
 plot(f(Ppre,Vs,T_pre(1)),Vs,'b')
 plot(f(Ppost,Vs,T_pre(1)),Vs,'r')
+
+xlabel('U (m/s)')
+ylabel('V (Volts)')
+legend('Postcal','Precal','location','southeast')
 hold off
 print('cal','-dpng')
 
+cal_curve.P = P;        cal_curve.S = S;
+cal_curve.Ppre = Ppre;  cal_curve.Spre = Spre;
+cal_curve.Ppost = Ppost;  cal_curve.Spost = Spost;
+
 %%
-meanU = data.ySet*0;
-varU = data.ySet*0;
-skewU = data.ySet*0;
+meanU = data.ySet*0;varU = data.ySet*0;skewU = data.ySet*0;
+
+spec.N = 2^18;            %Number of freq
+spec.overlap = (1-1/2);
+spec.dt = 1./data.rate;
+spec.df = 1./((spec.N+1).*spec.dt);
+spec.f = 0:spec.df:data.rate/2;
+spec.f_int=logspace(-1,log10(data.rate/2),300);
+
+
+num_bins = floor(2^(floor(log2(data.dur*data.rate/spec.N))) / spec.overlap);
+
+for j = 0:num_bins
+    temp = j*floor(spec.overlap*spec.N)+1;
+    bins(j+1,:) = [temp,temp+spec.N];
+end
 
 tic
 cd('Data')
+%E = zeros(spec.N+1,data.numPos);
 for i  = 1:data.numPos
     fl = fopen(data.name{i},'r');
     temp = fread(fl,[data.dur*data.rate,2],'single');
@@ -62,8 +83,21 @@ for i  = 1:data.numPos
     meanU(i) = mean(hwData);
     varU(i) = var(hwData);
     skewU(i) = skewness(hwData);
-    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
+    E_bin = zeros(spec.N/2+1,num_bins);
     
+    for j  = 1:num_bins
+        bin = hwData(bins(i,1):bins(i,2));
+        v_hat_bin = fft(bin)./(spec.N+1);
+        E_temp = (v_hat_bin).*conj(v_hat_bin).*2./(spec.df.*2.*pi);
+        E_bin(:,i) = E_temp(1:floor(spec.N./2)+1)';
+    end
+    E_mod_mean = mean(E_bin,2);
+    E_tune_mean_filt = medfilt1(E_mod_mean,60);
+    E_tune_mean_filt(1:35)=medfilt1(E_mod_mean(1:35),10);
+    E_tune_mean_int=interp1(spec.f,E_tune_mean_filt,spec.f_int);
+    E_filt = medfilt1(E_tune_mean_int,3);
+    E(:,i) = E_filt;
+    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
 end
 
 %%
@@ -89,13 +123,13 @@ u2_plus = varU./utau.^2;
 cal_curve.P = P;cal_curve.S = S;
 cal_curve.Ppre = Ppre;cal_curve.Spre = Spre;
 cal_curve.Ppost = Ppost;cal_curve.Spost = Spost;
-save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','-append')
+save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','cal_curve','-append')
 cd ..
-%%
-load('re150000.mat')
-figure(2)
-hold on
-semilogx(y_plus,U_plus,'-')
-figure(3)
-hold on
-semilogx(y_plus,u2_plus,'-')
+% %%
+% load('re150000.mat')
+% figure(2)
+% hold on
+% semilogx(y_plus,U_plus,'-')
+% figure(3)
+% hold on
+% semilogx(y_plus,u2_plus,'-')
