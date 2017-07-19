@@ -57,12 +57,12 @@ cal_curve.Ppost = Ppost;  cal_curve.Spost = Spost;
 %%
 meanU = data.ySet*0;varU = data.ySet*0;skewU = data.ySet*0;
 
-spec.N = 2^18;            %Number of freq
-spec.overlap = (1-1/2);
+spec.N = 2^17;            %Number of freq
+spec.overlap = (1);
 spec.dt = 1./data.rate;
 spec.df = 1./((spec.N+1).*spec.dt);
 spec.f = 0:spec.df:data.rate/2;
-spec.f_int=logspace(-1,log10(data.rate/2),300);
+spec.f_int=logspace(-1,log10(data.rate/2),500);
 
 
 num_bins = floor(2^(floor(log2(data.dur*data.rate/spec.N))) / spec.overlap);
@@ -95,11 +95,20 @@ for i  = 1:data.numPos
     E_tune_mean_filt = medfilt1(E_mod_mean,60);
     E_tune_mean_filt(1:35)=medfilt1(E_mod_mean(1:35),10);
     E_tune_mean_int=interp1(spec.f,E_tune_mean_filt,spec.f_int);
-    E_filt = medfilt1(E_tune_mean_int,3);
+    E_filt = medfilt1(E_tune_mean_int,30);
     E(:,i) = E_filt;
     fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
+    %spec.k=2*pi*spec.f'/U_mean;
+    %spec.k_int=2*pi*spec.f_int/U_mean;
 end
+%%
+% T1 = 0.002;
+% T2 = 0.00175;
+% TF = ((2*pi*T2.*f).^2+1).^0.5./((2*pi*T1.*f).^2+1).^0.5;
+% E_tune_avg = E_tune_avg./TF';
 
+% hold on
+%semilogx((2*pi./spec.k_int)*(eta) ,smooth(spec.k_int.*E_filt*u_mean)/u_tau^2,'m');
 %%
 %data.yActual = data.yActual+data.ymin-47e-3;
 figure(2)
