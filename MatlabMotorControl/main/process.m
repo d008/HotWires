@@ -7,6 +7,7 @@ U_pre = U; V_pre= V; T_pre = TempK;
 cd('Postcal'); load('summary.mat','U','V','TempK');cd ..
 U_post = U; V_post=V; T_post = TempK;
 cd('Data');load('acquisition.mat'); cd ..
+y_plus = data.yActual./eta;
 %% Compute the polynomials
 poly_deg = 4;U_cutoff = 1;
 
@@ -72,10 +73,12 @@ for j = 0:num_bins
     bins(j+1,:) = [temp,temp+spec.N];
 end
 
-tic
+%tic
 cd('Data')
+parObj = parpool(4) 
+tic
 %E = zeros(spec.N+1,data.numPos);
-for i  = 1:40;%data.numPos
+parfor i  = 1:data.numPos
     fl = fopen(data.name{i},'r');
     temp = fread(fl,[data.dur*data.rate,2],'single');
     fclose(fl);
@@ -84,10 +87,9 @@ for i  = 1:40;%data.numPos
     varU(i) = var(hwData);
     skewU(i) = skewness(hwData);
     E_bin = zeros(spec.N+1,num_bins);
-    
+    Sp(i) = sum(abs(hwData-mean(hwData))<1.5*utau)./length(hwData);
     for j  = 1:num_bins
-        bin = hwData(bins(j,1):bins(j,2))-meanU(i);
-        v_hat_bin = fft(bin)./(spec.N+1)*(2*pi);
+        v_hat_bin = fft(hwData(bins(j,1):bins(j,2))-meanU(i))./(spec.N+1)*(2*pi);
         E_temp = 2*(v_hat_bin).*conj(v_hat_bin);%./(spec.dt*spec.N).*spec.dt^2;
         %E_bin(:,i) = E_temp(1:floor(spec.N./2)+1)';
         E_bin(:,i) = E_temp;
@@ -99,10 +101,12 @@ for i  = 1:40;%data.numPos
 %     E_filt = medfilt1(E_tune_mean_int,3);
 %     E(:,i) = E_filt;
      E(:,i) = E_mod_mean;
-    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
+    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,1)
     var2U(i) = trapz(spec.F,E_mod_mean);
     var2U(i)
 end
+delete(gcp('nocreate'));
+toc
 %%
 % T1 = 0.002;
 % T2 = 0.00175;
@@ -128,12 +132,17 @@ semilogx(data.yActual./eta,skewU,'-bo')
 xlabel('y^+')
 ylabel('S')
 
+figure(5)
+semilogx(data.yActual./eta,Sp,'-bo')
+xlabel('y^+')
+ylabel('S')
+
 y_plus = data.yActual./eta;
 U_plus = meanU./utau;
 u2_plus = varU./utau.^2;
 cal_curve.P = P;cal_curve.S = S;
 cal_curve.Ppre = Ppre;cal_curve.Spre = Spre;
-cal_curve.Ppost = Ppost;cal_curve.Spost = Spost;
+cal_curve.Ppost = Ppost;cal_curve.Spost = Spost;clear 
 save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','cal_curve','-append')
 cd ..
 % %%
@@ -144,17 +153,17 @@ cd ..
 % figure(3)
 % hold on
 % semilogx(y_plus,u2_plus,'-')
-%%
-figure(5)
-hold on
-[ys,fs]= meshgrid(y_plus,spec.f_int);
-[Us,fs]= meshgrid(meanU,spec.f_int);
-
-for i =10
-    k1y = 2*pi*spec.f_int./meanU(i).*y_plus(i).*(eta/1000);
-    plot(k1y,k1y'.*E(:,i)./utau.^2,'-')
-end
-hold off
-ax = gca;
-ax.XScale= 'log'
-%ax.YScale= 'log'
+% %%
+% figure(5)
+% hold on
+% [ys,fs]= meshgrid(y_plus,spec.f_int);
+% [Us,fs]= meshgrid(meanU,spec.f_int);
+% 
+% for i =10
+%     k1y = 2*pi*spec.f_int./meanU(i).*y_plus(i).*(eta/1000);
+%     %plot(k1y,k1y'.*E(:,i)./utau.^2,'-')
+% end
+% hold off
+% ax = gca;
+% ax.XScale= 'log'
+% %ax.YScale= 'log'
