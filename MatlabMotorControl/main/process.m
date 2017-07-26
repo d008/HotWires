@@ -63,7 +63,7 @@ spec.N = 2^17;            %Number of freq
 spec.overlap = (1-1/8);
 spec.dt = 1./data.rate;
 spec.T = spec.dt*(spec.N-1);
-spec.df = 1./spec.dt
+spec.df = 1./spec.dt;
 spec.f = [-spec.N/2:(spec.N-1)./2]./(spec.N.*spec.dt);
 
 %num_bins = floor(2^(floor(log2(data.dur*data.rate/spec.N))) / spec.overlap);
@@ -95,16 +95,9 @@ for i  = 1:data.numPos
         X = fftshift(fft(fluc_bin));
         phi11_bin(:,j) = X.*conj(X)./(spec.T).*spec.dt^2;
     end
-      E_mod_mean = mean(phi11_bin,2);
-%     E_tune_mean_filt = medfilt1(E_mod_mean,100);
-%     E_tune_mean_filt(1:35)=medfilt1(E_mod_mean(1:35),10);
-%     E_tune_mean_int=interp1(spec.f,E_tune_mean_filt,spec.f_int);
-%     E_filt = medfilt1(E_tune_mean_int,3);
-%     E(:,i) = E_filt;
-     E(:,i) = E_mod_mean;
+     E(:,i) = mean(phi11_bin,2);
     fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
     var2U(i) = trapz(spec.f,E_mod_mean);
-    var2U(i)
 end
 %delete(parObj);
 toc
