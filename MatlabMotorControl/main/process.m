@@ -75,11 +75,11 @@ end
 %%
 %tic
 cd('Data')
-%parObj = parpool(4) 
+parObj = parpool(4) 
 tic
 %E = zeros(spec.N+1,data.numPos);
 %%
-for i  = 1:data.numPos
+parfor i  = 1:data.numPos
     fl = fopen(data.name{i},'r');
     temp = fread(fl,[data.dur*data.rate,2],'single');
     fclose(fl);
@@ -90,16 +90,13 @@ for i  = 1:data.numPos
     kurtU(i) = kurtosis(hwData);
     E_bin = zeros(spec.N+1,num_bins);
     Sp(i) = sum(abs(hwData-mean(hwData))<1.5*utau)./length(hwData);
-    for j  = 1:num_bins
-        fluc_bin = hwData(bins(j,1):(bins(j,2)-1))-meanU(i);
-        X = fftshift(fft(fluc_bin));
-        phi11_bin(:,j) = X.*conj(X)./(spec.T).*spec.dt^2;
-    end
-     E(:,i) = mean(phi11_bin,2);
+    fluc_bin = reshape(hwData(1:spec.N.*num_bins),spec.N,num_bins)-meanU(i);
+    X = fftshift(fft(fluc_bin));
+    E(:,i) = mean(X.*conj(X)./(spec.T).*spec.dt^2,2);
     fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
-    var2U(i) = trapz(spec.f,E_mod_mean);
+    var2U(i) = trapz(spec.f,E(:,i));
 end
-%delete(parObj);
+delete(parObj);
 toc
 
  %%
@@ -111,7 +108,7 @@ toc
 figure(3)
 semilogx(data.yActual./eta,var2U./utau.^2,'-bo')
 hold on
-semilogy(data.yActual./eta,varU./utau.^2,'-ro')
+semilogy(data.yActual./eta,varU./utau.^2,'-rs')
 xlabel('y^+')
 ylabel('u^2^+')
 
@@ -138,7 +135,7 @@ cal_curve.Ppre = Ppre;cal_curve.Spre = Spre;
 cal_curve.Ppost = Ppost;cal_curve.Spost = Spost;
 save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','cal_curve','-append')
 cd ..
-% %%
+ %%
 % load('re150000.mat')
 % figure(2)
 % hold on
@@ -148,15 +145,17 @@ cd ..
 % semilogx(y_plus,u2_plus,'-')
 % %%
 % figure(5)
-% hold on
+ hold on
 % [ys,fs]= meshgrid(y_plus,spec.f_int);
 % [Us,fs]= meshgrid(meanU,spec.f_int);
 % 
-% for i =10
-%     k1y = 2*pi*spec.f_int./meanU(i).*y_plus(i).*(eta/1000);
-%     %plot(k1y,k1y'.*E(:,i)./utau.^2,'-')
-% end
-% hold off
-% ax = gca;
-% ax.XScale= 'log'
-% %ax.YScale= 'log'
+for i =1:5:40
+    k1y = 2*pi*spec.f'./meanU(i).*data.yActual(i)./1000;
+    semilogx(k1y,k1y.*medfilt1(E(:,i)./utau.^2,60),'-')
+end
+% plot(k1y,k1y.^(-5/3)/100)
+% plot(k1y,k1y.^(-1)/100)
+ hold off
+ ax = gca;
+ ax.XScale= 'log'
+ %ax.YScale= 'log'
