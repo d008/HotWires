@@ -75,7 +75,7 @@ end
 %%
 %tic
 cd('Data')
-parObj = parpool(4) 
+parObj = parpool(4)
 tic
 %E = zeros(spec.N+1,data.numPos);
 %%
@@ -93,13 +93,13 @@ parfor i  = 1:data.numPos
     fluc_bin = reshape(hwData(1:spec.N.*num_bins),spec.N,num_bins)-meanU(i);
     X = fftshift(fft(fluc_bin));
     E(:,i) = mean(X.*conj(X)./(spec.T).*spec.dt^2,2);
-    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
+    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,1)
     var2U(i) = trapz(spec.f,E(:,i));
 end
 delete(parObj);
 toc
 
- %%
+%%
 % figure(2)
 % semilogx(data.yActual./eta,meanU./utau,'-bo')
 % xlabel('y^+')
@@ -116,12 +116,12 @@ ylabel('u^2^+')
 % semilogx(data.yActual./eta,skewU,'-bo')
 % xlabel('y^+')
 % ylabel('S')
-% 
+%
 % figure(5)
 % semilogx(data.yActual./eta,kurtU,'-bo')
 % xlabel('y^+')
 % ylabel('K')
-% 
+%
 % figure(6)
 % semilogx(data.yActual./eta,Sp,'-bo')
 % xlabel('y^+')
@@ -135,7 +135,7 @@ cal_curve.Ppre = Ppre;cal_curve.Spre = Spre;
 cal_curve.Ppost = Ppost;cal_curve.Spost = Spost;
 save('acquisition.mat','y_plus','meanU','u2_plus','varU','U_plus','skewU','cal_curve','-append')
 cd ..
- %%
+%%
 % load('re150000.mat')
 % figure(2)
 % hold on
@@ -145,17 +145,21 @@ cd ..
 % semilogx(y_plus,u2_plus,'-')
 % %%
 % figure(5)
- hold on
-% [ys,fs]= meshgrid(y_plus,spec.f_int);
-% [Us,fs]= meshgrid(meanU,spec.f_int);
-% 
-for i =1:5:40
-    k1y = 2*pi*spec.f'./meanU(i).*data.yActual(i)./1000;
-    semilogx(k1y,k1y.*medfilt1(E(:,i)./utau.^2,60),'-')
+% [ys,fs]= meshgrid(y_plus,spec.f);
+% [Us,fs]= meshgrid(meanU,spec.f);
+% contourf(ys,(Us./fs./data.D*2).^(1),E./(Us./fs)./utau^2,10);
+% shading interp
+% colorbar
+clf
+hold on
+for i =1:40
+    y_plus(i)
+    k1y = spec.f'./meanU(i).*eta/1000;
+    semilogx(k1y,medfilt1(E(:,i)./utau.^2,50).*k1y,'-')
 end
 % plot(k1y,k1y.^(-5/3)/100)
 % plot(k1y,k1y.^(-1)/100)
- hold off
- ax = gca;
- ax.XScale= 'log'
- %ax.YScale= 'log'
+hold off
+ax = gca;
+ax.XScale= 'log'
+%ax.YScale= 'log'
