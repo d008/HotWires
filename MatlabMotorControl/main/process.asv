@@ -60,16 +60,15 @@ meanU = data.ySet*0;varU = data.ySet*0;skewU = data.ySet*0;
 var2U = data.ySet*0;
 
 spec.N = 2^17;            %Number of freq
-spec.overlap = (1-1/8);
+spec.overlap = (1-1/2);
 spec.dt = 1./data.rate;
 spec.T = spec.dt*(spec.N-1);
 spec.df = 1./spec.dt
-spec.f = [-spec.N/2:(spec.N-1)./2]./(spec.N.*spec.dt);
+spec.f = [-spec.N/2:(spec.N-1)./2]./(spec.N.*dt);
+num_bins = floor(2^(floor(log2(data.dur*data.rate/spec.N))) / spec.overlap);
 
-%num_bins = floor(2^(floor(log2(data.dur*data.rate/spec.N))) / spec.overlap);
-num_bins = floor(data.dur*data.rate/spec.N);
 for j = 0:num_bins
-    temp = j*(spec.N)+1;
+    temp = j*floor(spec.overlap*spec.N)+1;
     bins(j+1,:) = [temp,temp+spec.N];
 end
 %%
@@ -92,50 +91,58 @@ for i  = 1:data.numPos
     Sp(i) = sum(abs(hwData-mean(hwData))<1.5*utau)./length(hwData);
     for j  = 1:num_bins
         fluc_bin = hwData(bins(j,1):(bins(j,2)-1))-meanU(i);
-        X = fftshift(fft(fluc_bin));
-        phi11_bin(:,j) = X.*conj(X)./(spec.T).*spec.dt^2;
+        v_hat_bin = fftshiftfft(fluc_bin);
+        E_temp = 2*(v_hat_bin).*conj(v_hat_bin);%./(spec.dt*spec.N).*spec.dt^2;
+        %E_bin(:,i) = E_temp(1:floor(spec.N./2)+1)';
+        E_bin(:,i) = E_temp;
     end
-      E_mod_mean = mean(phi11_bin,2);
+      E_mod_mean = mean(E_bin,2);
 %     E_tune_mean_filt = medfilt1(E_mod_mean,100);
 %     E_tune_mean_filt(1:35)=medfilt1(E_mod_mean(1:35),10);
 %     E_tune_mean_int=interp1(spec.f,E_tune_mean_filt,spec.f_int);
 %     E_filt = medfilt1(E_tune_mean_int,3);
 %     E(:,i) = E_filt;
      E(:,i) = E_mod_mean;
-    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
-    var2U(i) = trapz(spec.f,E_mod_mean);
+    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,1)
+    var2U(i) = trapz(spec.F,E_mod_mean);
     var2U(i)
 end
 %delete(parObj);
 toc
+%%
+% T1 = 0.002;
+% T2 = 0.00175;
+% TF = ((2*pi*T2.*f).^2+1).^0.5./((2*pi*T1.*f).^2+1).^0.5;
+% E_tune_avg = E_tune_avg./TF';
 
- %%
-% figure(2)
-% semilogx(data.yActual./eta,meanU./utau,'-bo')
-% xlabel('y^+')
-% ylabel('U^+')
+% hold on
+%semilogx((2*pi./spec.k_int)*(eta) ,smooth(spec.k_int.*E_filt*u_mean)/u_tau^2,'m');
+%%
+%data.yActual = data.yActual+data.ymin-47-3;
+figure(2)
+semilogx(data.yActual./eta,meanU./utau,'-bo')
+xlabel('y^+')
+ylabel('U^+')
 
 figure(3)
-semilogx(data.yActual./eta,var2U./utau.^2,'-bo')
-hold on
-semilogy(data.yActual./eta,varU./utau.^2,'-ro')
+semilogx(data.yActual./eta,varU./utau.^2,'-bo')
 xlabel('y^+')
 ylabel('u^2^+')
 
-% figure(4)
-% semilogx(data.yActual./eta,skewU,'-bo')
-% xlabel('y^+')
-% ylabel('S')
-% 
-% figure(5)
-% semilogx(data.yActual./eta,kurtU,'-bo')
-% xlabel('y^+')
-% ylabel('K')
-% 
-% figure(6)
-% semilogx(data.yActual./eta,Sp,'-bo')
-% xlabel('y^+')
-% ylabel('S')
+figure(4)
+semilogx(data.yActual./eta,skewU,'-bo')
+xlabel('y^+')
+ylabel('S')
+
+figure(5)
+semilogx(data.yActual./eta,kurtU,'-bo')
+xlabel('y^+')
+ylabel('K')
+
+figure(6)
+semilogx(data.yActual./eta,Sp,'-bo')
+xlabel('y^+')
+ylabel('S')
 
 y_plus = data.yActual./eta;
 U_plus = meanU./utau;
