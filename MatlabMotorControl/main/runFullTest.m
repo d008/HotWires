@@ -96,7 +96,6 @@ disp('Moving to Centerline')
 disp('Starting Precal')
 tic
 Vtemp = runCalibration(fname);
-send_text_message('703-508-3338','T-Mobile','Precal Done',num2str(toc))
 %%
 cd(direc);cd(fname)
 load('summary.mat','U','V');
@@ -229,7 +228,6 @@ data.Static_Pa(i+1) = TunnelStatic.cal(mean(pre_data(:,2)));
 data.TempK = data.TempK(1:end-1)+diff(data.TempK)./2;
 data.Static_Pa = data.Static_Pa(1:end-1)+diff(data.Static_Pa)./2;
 % Save the testing Data
-send_text_message('703-508-3338','T-Mobile','Data taking is Done',num2str(toc))
 figure(1)
     print('mean','-dpng')
 figure(2)
@@ -272,7 +270,6 @@ plot(U,V,'rx')
 hold on
 
 Vtemp = runCalibration(fname);
-send_text_message('703-508-3338','T-Mobile','Postcal is Done',num2str(toc))
 
 % Ramp voltage down
 DAQSetup
@@ -292,7 +289,6 @@ cd(direc);
 % Process
 %
 process
-send_text_message('703-508-3338','T-Mobile',sprintf('Re_tau = %d',round(data.D/2/eta*1000)),'Test Completed')
 % 
 % DAQSetup
 % %% Ramp down for the Postcal
