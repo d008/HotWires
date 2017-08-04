@@ -60,26 +60,27 @@ meanU = data.ySet*0;varU = data.ySet*0;skewU = data.ySet*0;
 var2U = data.ySet*0;
 
 spec.N = 2^17;            %Number of freq
-spec.overlap = (1-1/8);
+spec.overlap = 1/4;
 spec.dt = 1./data.rate;
 spec.T = spec.dt*(spec.N-1);
 spec.df = 1./spec.dt;
 spec.f = [-spec.N/2:(spec.N-1)./2]./(spec.N.*spec.dt);
 
 %num_bins = floor(2^(floor(log2(data.dur*data.rate/spec.N))) / spec.overlap);
-num_bins = floor(data.dur*data.rate/spec.N);
+num_bins = floor((data.dur*data.rate/spec.N-1)/(1-spec.overlap));
+clear bins
 for j = 0:num_bins
-    temp = j*(spec.N)+1;
-    bins(j+1,:) = [temp,temp+spec.N];
+    temp = floor(j*(spec.N)*spec.overlap)+1;
+    bins(j+1,:) = [temp,temp+spec.N-1];
 end
 %%
 %tic
 cd('Data')
-parObj = parpool(4)
+%parObj = parpool(4)
 tic
 %E = zeros(spec.N+1,data.numPos);
 %%
-parfor i  = 1:data.numPos
+for i  = 1:data.numPos
     fl = fopen(data.name{i},'r');
     temp = fread(fl,[data.dur*data.rate,2],'single');
     fclose(fl);
@@ -90,13 +91,17 @@ parfor i  = 1:data.numPos
     kurtU(i) = kurtosis(hwData);
     E_bin = zeros(spec.N+1,num_bins);
     Sp(i) = sum(abs(hwData-mean(hwData))<1.5*utau)./length(hwData);
-    fluc_bin = reshape(hwData(1:spec.N.*num_bins),spec.N,num_bins)-meanU(i);
-    X = fftshift(fft(fluc_bin));
-    E(:,i) = mean(X.*conj(X)./(spec.T).*spec.dt^2,2);
-    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,1)
-    var2U(i) = trapz(spec.f,E(:,i));
+%     for j = 1:num_bins
+%         fluc_bin(:,j) = hwData(bins(j,1):bins(j,2))-meanU(i);
+%     end
+%   X = fftshift(fft(fluc_bin));
+%   E(:,i) = mean(X.*conj(X)./(spec.T).*spec.dt^2,2);
+    [PXX,F] = pwelch(hwData-mean(hwData),2^17,2^16,2^17,spec.df);
+    E(:,i) = PXX;
+    fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
+    var2U(i) = trapz(F,E(:,i));
 end
-delete(parObj);
+%delete(parObj);
 toc
 
 %%
@@ -154,8 +159,8 @@ clf
 hold on
 for i =1:40
     y_plus(i)
-    k1y = spec.f'./meanU(i).*eta/1000;
-    semilogx(k1y,medfilt1(E(:,i)./utau.^2,50).*k1y,'-')
+    k1y = F'./meanU(i).*eta/1000;
+    loglog(F,medfilt1(E(:,i)./utau.^2,50),'-')
 end
 % plot(k1y,k1y.^(-5/3)/100)
 % plot(k1y,k1y.^(-1)/100)
