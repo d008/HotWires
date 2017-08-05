@@ -95,7 +95,7 @@ for i  = 1:data.numPos
 %     end
 %   X = fftshift(fft(fluc_bin));
 %   E(:,i) = mean(X.*conj(X)./(spec.T).*spec.dt^2,2);
-    [PXX,F] = pwelch(hwData-mean(hwData),2^17,2^16,2^17,spec.df);
+    [PXX,F] = pwelch(hwData-mean(hwData),2^17,[],[],spec.df);
     E(:,i) = PXX;
     fprintf('Processed %i/%i - %0.2f sec\n',i,data.numPos,toc)
     var2U(i) = trapz(F,E(:,i));
