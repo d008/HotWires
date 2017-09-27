@@ -1,4 +1,4 @@
-function [ ] = dpdx(varargin)
+function [] = dpdx(varargin)
 if nargin<1;
     %Default taps to sample
     taps = 3:1:21;
@@ -9,15 +9,15 @@ end
 %Array of the number of 'skips' the scanivalve has to make
 moves = diff([1,taps]);
 
-D = 0.1298448;  %Pipe diameter in meters
-dx = 25*D/19;   %Spacing between the taps in meters
+D = 0.12936;;  %Pipe diameter in meters
+dx = 0.1651;   %Spacing between the taps in meters
 rate =10000;    %Samples rate (S/s)
-dur = 10;       %Duration of sampling per tap in seconds
+dur = 3;       %Duration of sampling per tap in seconds
 
 %Allocate memory
 P = taps*0;P_std= P;TempK = P;Static_Pa = P;
 
-DAQSetup
+DAQXSetup
 %Homes the scanivalve
 homeScani(daqCal,ScaniHome);
 
@@ -25,7 +25,7 @@ homeScani(daqCal,ScaniHome);
 ichan =  {Temperature,TunnelStatic,Scanivalve};
 %Add input channels
 for i = 1:length(ichan)
-    ch = addAnalogInputChannel(daqCal,'Dev4',ichan{i}.Channel,'Voltage');% Motor Controller Voltage
+    ch = addAnalogInputChannel(daqCal,ichan{i}.dev,ichan{i}.Channel,'Voltage');% Motor Controller Voltage
     ch.Name = ichan{i}.Name;
     ch.Range = ichan{i}.Range;
 end
@@ -63,7 +63,7 @@ for i = 1:length(moves)
 end
 %home the scanivalve
 homeScani(daqCal,ScaniHome);
-
+skipScani(daqCal,ScaniSkip,moves(3))
 %Calculate the mean pressure gradient
 DPDX1 = mean(diff(P)./(diff(taps.*dx)))
 DPDX2 = fit(taps'.*dx,P','poly1');
@@ -71,9 +71,10 @@ DPDX2 = DPDX2.p1
 
 %Determine utau and eta for the runs
 if(mean(Static_Pa)<100000)
-[Rho, mu] = ZSI(mean(TempK),101325);
+    [Rho, mu] = ZSI(mean(TempK),101325);
 else
-[Rho, mu] = ZSI(mean(TempK),mean(Static_Pa));
+    %[Rho, mu] = ZSI(mean(TempK),101325);
+    [Rho, mu] = ZSI(mean(TempK),mean(Static_Pa)+101325);
 end
 utau = sqrt((-DPDX2./Rho)*(D./4))
 eta = mu./Rho./utau*1000;
@@ -84,13 +85,14 @@ dpdx.TempK = TempK;dpdx.taps = taps;dpdx.dx = dx;
 dpdx.DPDX1 = DPDX1;dpdx.DPDX2 = DPDX2;
 dpdx.Rho  = Rho;dpdx.mu = mu;dpdx.eta = eta;dpdx.utau= utau;
 fprintf('Re_tau = %d\n',round(D/2/eta*1000))
+Re_tau = (D/2/eta*1000)
 
-save('dpdx.mat','dpdx','utau','eta')
+save('dpdx.mat','dpdx','utau','eta','Rho','Re_tau')
 end
 
 %Homes the scanivalve
 function homeScani(daqCal,ScaniHome)
-ch = addDigitalChannel(daqCal,'Dev4',ScaniHome.DChannel,'OutputOnly');
+ch = addDigitalChannel(daqCal,ScaniHome.Ddev,ScaniHome.DChannel,'OutputOnly');
 outputSingleScan(daqCal,1);
 pause(2)
 outputSingleScan(daqCal,0);
@@ -100,7 +102,7 @@ end
 
 %Skips to the next tap on the scanivalve
 function skipScani(daqCal,ScaniSkip,i)
-ch = addDigitalChannel(daqCal,'Dev4',ScaniSkip.DChannel,'OutputOnly');
+ch = addDigitalChannel(daqCal,ScaniSkip.Ddev,ScaniSkip.DChannel,'OutputOnly');
 if i > 0
     for p = 1:i
         outputSingleScan(daqCal,1);

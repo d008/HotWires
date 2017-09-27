@@ -23,6 +23,7 @@ classdef traverse
                 fclose(obj.motor);
                 obj.motor = obj.motor(1);
             end
+            %set(obj.motor, 'Terminator', {'CR/LF','CR/LF'});
             set(obj.motor, 'Terminator', {'CR','CR'});
             set(obj.motor, 'Timeout', 0.01);
             fopen(obj.motor);
@@ -130,7 +131,7 @@ classdef traverse
             % disp('temp ok')
             disp(temp);
             
-            disp(query(obj.motor,temp,'%s\n','%s\n'))
+            obj.feedback(query(obj.motor,temp,'%s\n','%s\n'))
             flushinput(obj.motor)
             %pause(3)
             loc = obj.locate();
@@ -152,31 +153,45 @@ classdef traverse
             % disp('close motor')
         end
         
-        function [pos] = STOP(obj)
+        function  STOP(obj)
             if strcmp(obj.motor.Status,'closed')
                 fopen(obj.motor);
             end
             flushinput(obj.motor)
-            pos = query(obj.motor,'/1TR','%s\n','%s\n');
+            obj.feedback(query(obj.motor,'/1TR','%s\n','%s\n'));
         end
         
+        function feedback(obj,command)
+            if isempty(command) | length(command)<4
+                disp('ERROR')
+            elseif command(4) == '@'
+                disp('OK')
+            elseif command(4) == 'b'
+                disp('BAD')
+            elseif command(4) == '`'
+                disp('TERMINATED')
+            elseif command(4) == 'C' | command(4) == 'c'
+                disp('OUT OF RANGE')
+            end
+        end
         %zeroEncoder(motor,100000);
         function findWall(obj)
             disp('FIND THE WALL')
             daqCal = daq.createSession('ni');
-            ch = addAnalogInputChannel(daqCal,'Dev4','ai7','Voltage');
+            LimitSwitch.DChannel = 'port0/line4';
+            LimitSwitch.cal = @(V) V<1;
+            LimitSwitch.Name = 'LimitSwitch';
+            LimitSwitch.Ddev = 'Dev5';
+            ch = addDigitalChannel(daqCal,LimitSwitch.Ddev,LimitSwitch.DChannel,'InputOnly');
             ch.Name = 'LimitSwitch';
-            daqCal.Rate = 25000;
-            daqCal.IsContinuous = false;
-            daqCal.DurationInSeconds = 0.001;
             
             if strcmp(obj.motor.Status,'closed')
                 fopen(obj.motor);
             end
             [p1,p2]= obj.locate()
-            if p2 > 0.5
-                disp(num2str(-p2+0.25))
-                obj.move(-p2+0.25)
+            if p2 > 0.75
+                disp(num2str(-p2+0.5))
+                obj.move(-p2+0.5)
             end
             [p1,p2]= obj.locate()
             if strcmp(obj.motor.Status,'closed')
@@ -185,16 +200,20 @@ classdef traverse
             wspeed = 500;
             temp = sprintf('/1V%dj%d%c%dR',wspeed,256,'D',0);
             fprintf(obj.motor,temp)
-            isTouching =daqCal.inputSingleScan;
+            isTouching = ~inputSingleScan(daqCal);
             tic
             h = waitbar(0,'Please wait...');
             disp('Stepping...')
             tic
-            while isTouching  > 2.5;
-                data = daqCal.startForeground();
-                isTouching = median(data);
-                waitbar(min(1,toc/(250/(wspeed/256*1.25))),h,...
-                    sprintf('%0.3f',isTouching))
+            numit = 11;
+            while ~isTouching;
+                data = zeros(1,numit);
+                for i = 1:numit
+                    data(i) = inputSingleScan(daqCal);
+                end  
+                isTouching = ~median(data);
+                waitbar(min(1,toc/(500/(wspeed/256*1.25))),h,...
+                    sprintf('%0.3f',toc))
             end
             obj.STOP()
             disp('WALL FOUND')
